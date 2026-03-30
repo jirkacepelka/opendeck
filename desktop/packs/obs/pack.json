@@ -1,0 +1,47 @@
+{
+  "id": "obs",
+  "name": "OBS Studio",
+  "version": "1.0.0",
+  "description": "Control OBS Studio via WebSocket (obs-websocket v5)",
+  "author": "OpenDeck",
+  "configSchema": {
+    "host": { "type": "string", "label": "OBS WebSocket host", "default": "localhost" },
+    "port": { "type": "number", "label": "OBS WebSocket port", "default": 4455 },
+    "password": { "type": "string", "label": "OBS WebSocket password", "secret": true }
+  },
+  "buttons": [
+    {
+      "id": "stream_toggle",
+      "label": "Stream",
+      "icon": "radio",
+      "defaultSize": "2x1"
+    },
+    {
+      "id": "record_toggle",
+      "label": "Record",
+      "icon": "circle",
+      "defaultSize": "2x1"
+    },
+    {
+      "id": "scene_switch",
+      "label": "Scene",
+      "icon": "layout",
+      "defaultSize": "2x1",
+      "configSchema": {
+        "sceneName": { "type": "string", "label": "Scene name", "required": true }
+      }
+    },
+    {
+      "id": "mic_mute",
+      "label": "Mic",
+      "icon": "mic",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "desktop_mute",
+      "label": "Desktop",
+      "icon": "monitor",
+      "defaultSize": "1x1"
+    }
+  ]
+}

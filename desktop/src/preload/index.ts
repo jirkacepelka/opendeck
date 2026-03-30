@@ -1,0 +1,39 @@
+import { contextBridge, ipcRenderer } from 'electron'
+
+// Expose safe API to renderer (React app)
+contextBridge.exposeInMainWorld('opendeck', {
+  // Profiles
+  profiles: {
+    getAll: () => ipcRenderer.invoke('profiles:getAll'),
+    getActive: () => ipcRenderer.invoke('profiles:getActive'),
+    create: (profile: any) => ipcRenderer.invoke('profiles:create', profile),
+    update: (id: string, patch: any) => ipcRenderer.invoke('profiles:update', id, patch),
+    delete: (id: string) => ipcRenderer.invoke('profiles:delete', id),
+    setActive: (id: string) => ipcRenderer.invoke('profiles:setActive', id),
+  },
+
+  // Packs
+  packs: {
+    getAll: () => ipcRenderer.invoke('packs:getAll'),
+  },
+
+  // Live button states
+  states: {
+    getAll: () => ipcRenderer.invoke('states:getAll'),
+    onChange: (cb: (event: any) => void) => {
+      ipcRenderer.on('state:update', (_e, data) => cb(data))
+      return () => ipcRenderer.removeAllListeners('state:update')
+    },
+  },
+
+  // Config
+  config: {
+    get: () => ipcRenderer.invoke('config:get'),
+    save: (patch: any) => ipcRenderer.invoke('config:save', patch),
+  },
+
+  // Connection
+  connection: {
+    getClients: () => ipcRenderer.invoke('connection:getClients'),
+  },
+})

@@ -1,0 +1,27 @@
+{
+  "expo": {
+    "name": "OpenDeck",
+    "slug": "opendeck",
+    "version": "0.1.0",
+    "orientation": "landscape",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0a0a0a",
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0a0a"
+      },
+      "package": "dev.opendeck.app",
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "ACCESS_WIFI_STATE"
+      ]
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "opendeck"
+  }
+}

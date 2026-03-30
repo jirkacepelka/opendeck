@@ -1,0 +1,33 @@
+{
+  "id": "media",
+  "name": "Media Controls",
+  "version": "1.0.0",
+  "description": "System media controls: play/pause, next, previous, volume",
+  "author": "OpenDeck",
+  "buttons": [
+    {
+      "id": "play_pause",
+      "label": "Play/Pause",
+      "icon": "play",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "next",
+      "label": "Next",
+      "icon": "skip-forward",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "prev",
+      "label": "Prev",
+      "icon": "skip-back",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "media_row",
+      "label": "Media Controls",
+      "icon": "music",
+      "defaultSize": "3x1"
+    }
+  ]
+}

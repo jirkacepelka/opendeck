@@ -1,0 +1,74 @@
+{
+  "name": "opendeck",
+  "version": "0.1.0",
+  "description": "Open-source Stream Deck alternative",
+  "main": "dist-electron/main/index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && electron-builder",
+    "build:win": "tsc && vite build && electron-builder --win",
+    "build:mac": "tsc && vite build && electron-builder --mac",
+    "build:linux": "tsc && vite build && electron-builder --linux",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "preview": "vite preview"
+  },
+  "keywords": ["streamdeck", "opendeck", "open-source"],
+  "license": "GPL-3.0",
+  "dependencies": {
+    "ws": "^8.17.1",
+    "open": "^10.1.0",
+    "chokidar": "^3.6.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "concurrently": "^9.0.1",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.7",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.3",
+    "vite": "^5.4.8",
+    "vite-plugin-electron": "^0.28.8",
+    "vite-plugin-electron-renderer": "^0.14.5",
+    "wait-on": "^8.0.1",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "@types/ws": "^8.5.12",
+    "lucide-react": "^0.468.0",
+    "zustand": "^5.0.0"
+  },
+  "build": {
+    "appId": "dev.opendeck.app",
+    "productName": "OpenDeck",
+    "copyright": "GPL-3.0",
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "packs/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "packs",
+        "to": "packs"
+      }
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }],
+      "icon": "assets/icon.icns"
+    },
+    "linux": {
+      "target": [{ "target": "AppImage", "arch": ["x64"] }],
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}

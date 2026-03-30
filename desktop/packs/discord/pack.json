@@ -1,0 +1,28 @@
+{
+  "id": "discord",
+  "name": "Discord",
+  "version": "1.0.0",
+  "description": "Control Discord via Discord IPC (no API key needed — uses local app)",
+  "author": "OpenDeck",
+  "buttons": [
+    {
+      "id": "mute",
+      "label": "Mute",
+      "icon": "mic-off",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "deafen",
+      "label": "Deafen",
+      "icon": "headphones",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "push_to_talk",
+      "label": "Talk",
+      "icon": "mic",
+      "defaultSize": "2x1",
+      "hasHold": true
+    }
+  ]
+}

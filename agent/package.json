@@ -1,0 +1,19 @@
+{
+  "name": "opendeck-agent",
+  "version": "0.1.0",
+  "description": "OpenDeck desktop agent — WebSocket server for OpenDeck Android app",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "dependencies": {
+    "ws": "^8.17.1",
+    "chokidar": "^3.6.0",
+    "open": "^10.1.0"
+  },
+  "devDependencies": {},
+  "keywords": ["streamdeck", "opendeck", "open-source", "websocket"],
+  "license": "GPL-3.0"
+}

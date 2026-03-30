@@ -1,0 +1,134 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  # ── Desktop (Electron) ────────────────────────────────────────────────────
+  build-desktop:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+            artifact: OpenDeck-Setup-*.exe
+          - os: macos-latest
+            platform: mac
+            artifact: OpenDeck-*.dmg
+          - os: ubuntu-latest
+            platform: linux
+            artifact: OpenDeck-*.AppImage
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: desktop
+
+      - name: Build Electron app
+        run: npm run build:${{ matrix.platform }}
+        working-directory: desktop
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-${{ matrix.platform }}
+          path: desktop/dist/${{ matrix.artifact }}
+
+  # ── Android (EAS) ─────────────────────────────────────────────────────────
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: android-app/package-lock.json
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: android-app
+
+      - name: Build APK
+        run: eas build --platform android --profile preview --non-interactive
+        working-directory: android-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Download APK from EAS
+        run: |
+          eas build:list --platform android --limit 1 --json | \
+          python3 -c "import sys,json; builds=json.load(sys.stdin); print(builds[0]['artifacts']['buildUrl'])" > apk_url.txt
+          curl -L $(cat apk_url.txt) -o OpenDeck.apk
+        working-directory: android-app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android-app/OpenDeck.apk
+
+  # ── GitHub Release ────────────────────────────────────────────────────────
+  create-release:
+    needs: [build-desktop, build-android]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: OpenDeck ${{ steps.version.outputs.VERSION }}
+          draft: false
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+          body: |
+            ## OpenDeck ${{ steps.version.outputs.VERSION }}
+
+            ### Instalace
+
+            **Windows:** Stáhni `.exe` a spusť installer.
+            **macOS:** Stáhni `.dmg` a přesuň do Applications.
+            **Linux:** Stáhni `.AppImage`, přidej execute permission (`chmod +x`) a spusť.
+            **Android:** Stáhni `.apk` a nainstaluj (v Nastavení povol instalaci z neznámých zdrojů).
+
+            ### Co je nového
+            _Viz CHANGELOG.md_
+          files: |
+            artifacts/desktop-win/*.exe
+            artifacts/desktop-mac/*.dmg
+            artifacts/desktop-linux/*.AppImage
+            artifacts/android-apk/OpenDeck.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

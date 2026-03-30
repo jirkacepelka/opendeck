@@ -1,0 +1,57 @@
+{
+  "id": "system",
+  "name": "System",
+  "version": "1.0.0",
+  "description": "System-level actions: run commands, keyboard shortcuts, open URLs, clipboard, volume",
+  "author": "OpenDeck",
+  "buttons": [
+    {
+      "id": "run_command",
+      "label": "Run Command",
+      "icon": "terminal",
+      "defaultSize": "2x1",
+      "configSchema": {
+        "command": { "type": "string", "label": "Shell command", "required": true },
+        "label": { "type": "string", "label": "Button label" }
+      }
+    },
+    {
+      "id": "hotkey",
+      "label": "Hotkey",
+      "icon": "keyboard",
+      "defaultSize": "1x1",
+      "configSchema": {
+        "keys": { "type": "string", "label": "Keys (e.g. ctrl+c)", "required": true },
+        "label": { "type": "string", "label": "Button label" }
+      }
+    },
+    {
+      "id": "open_url",
+      "label": "Open URL",
+      "icon": "external-link",
+      "defaultSize": "2x1",
+      "configSchema": {
+        "url": { "type": "string", "label": "URL", "required": true },
+        "label": { "type": "string", "label": "Button label" }
+      }
+    },
+    {
+      "id": "volume_up",
+      "label": "Vol +",
+      "icon": "volume-2",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "volume_down",
+      "label": "Vol -",
+      "icon": "volume-1",
+      "defaultSize": "1x1"
+    },
+    {
+      "id": "mute_toggle",
+      "label": "Mute",
+      "icon": "volume-x",
+      "defaultSize": "1x1"
+    }
+  ]
+}
