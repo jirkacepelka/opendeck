@@ -40,6 +40,8 @@ export class PluginManager {
   ) {}
 
   async loadAll() {
+    // Vymaž aktuální mapu aby nedocházelo k duplikátům při obnovení
+    this._packs.clear()
     await this._loadFromDir(this.config.builtinPacksDir, true)
     if (existsSync(this.config.userPacksDir)) {
       await this._loadFromDir(this.config.userPacksDir, false)

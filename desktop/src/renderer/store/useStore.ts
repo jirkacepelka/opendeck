@@ -90,6 +90,11 @@ export const useStore = create<AppState>((set, get) => ({
         set(s => ({ buttonStates: { ...s.buttonStates, [event.buttonId]: event.state } }))
       }
     })
+
+    // Subscribe na aktualizace packů (po instalaci/odinstalaci)
+    window.opendeck.marketplace.onPacksUpdated((updatedPacks) => {
+      set({ packs: updatedPacks })
+    })
   },
 
   createProfile: async (p) => {

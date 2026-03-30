@@ -249,10 +249,19 @@ ipcMain.handle('marketplace:fetchUrl', async (_, url: string) => {
 })
 
 ipcMain.handle('marketplace:install', async (event, pack) => {
-  return packInstaller.install(pack, (pct) => {
-    // Poslání progress do renderu
+  const result = await packInstaller.install(pack, (pct) => {
     event.sender.send('marketplace:progress', { packId: pack.id, pct })
   })
+  if (result.ok) {
+    // Znovu načti všechny packs (built-in + uživatelské)
+    await pluginManager.loadAll()
+    // Pošli aktualizovaný seznam do rendereru
+    const updatedPacks = pluginManager.getPacksMeta()
+    mainWindow?.webContents.send('packs:updated', updatedPacks)
+    // Broadcastuj i na Android klienty
+    broadcast({ type: 'packs_list', packs: updatedPacks })
+  }
+  return result
 })
 
 ipcMain.handle('marketplace:uninstall', async (_, packName: string) => {
