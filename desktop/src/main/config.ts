@@ -13,8 +13,10 @@ export interface AppConfig {
 }
 
 export function loadConfig(appDir: string): AppConfig {
+  // userData je už C:\Users\...\AppData\Roaming\opendeck (název z appId)
+  // nepřidávej další podsložku
   const dataDir = app.isPackaged
-    ? join(app.getPath('userData'), 'opendeck')
+    ? app.getPath('userData')
     : join(homedir(), '.opendeck-dev')
 
   const userPacksDir = join(dataDir, 'packs')

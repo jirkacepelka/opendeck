@@ -1,6 +1,5 @@
 import { readdirSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
-import { pathToFileURL } from 'url'
 import { StateManager } from '../ws/StateManager'
 import { AppConfig } from '../config'
 import { log } from '../logger'
@@ -78,19 +77,22 @@ export class PluginManager {
     }
 
     try {
-      const mod = await import(pathToFileURL(indexPath).href)
-      const pack = mod.default ?? mod
+      // Použij require() místo import() — funguje pro soubory mimo .asar v produkci
+      // Vyčisti require cache aby reload fungoval správně
+      if (require.cache[indexPath]) delete require.cache[indexPath]
+      const pack = require(indexPath)
+      const packDefault = pack.default ?? pack
 
       const ctx = this._buildContext(meta.id)
-      if (typeof pack.setup === 'function') await pack.setup(ctx)
+      if (typeof packDefault.setup === 'function') await packDefault.setup(ctx)
 
       this._packs.set(meta.id, {
         meta: { ...meta, builtin },
-        handlers: pack.handlers ?? {},
+        handlers: packDefault.handlers ?? {},
         builtin,
       })
 
-      log(`Loaded pack: ${meta.id} (${Object.keys(pack.handlers ?? {}).length} buttons)`)
+      log(`Loaded pack: ${meta.id} (${Object.keys(packDefault.handlers ?? {}).length} buttons)`)
     } catch (e: any) {
       log(`Failed to load pack ${packDir}: ${e.message}`)
     }

@@ -93,7 +93,7 @@ async function connect() {
   }
 }
 
-export default {
+module.exports = {
   async setup(context) {
     packCtx = context;
     context.log('Discord pack loaded');

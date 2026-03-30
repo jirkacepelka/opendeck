@@ -97,7 +97,7 @@ async function connect(config) {
   }
 }
 
-export default {
+module.exports = {
   async setup(context) {
     ctx = context;
     ctx.log('OBS pack loaded');

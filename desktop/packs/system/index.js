@@ -7,9 +7,9 @@
  * macOS:   AppleScript
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import openUrl from 'open';
+const { exec } = require("child_process");
+const { promisify } = require("util");
+const openUrl = require("open");
 
 const execAsync = promisify(exec);
 const platform = process.platform; // 'linux' | 'darwin' | 'win32'
@@ -179,7 +179,7 @@ async function sendHotkey(keys) {
 
 // ── Pack ──────────────────────────────────────────────────────────────────
 
-export default {
+module.exports = {
   async setup(ctx) {
     ctx.log(`System pack loaded (platform: ${platform})`);
   },

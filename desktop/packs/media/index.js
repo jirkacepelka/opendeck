@@ -7,8 +7,8 @@
  * Windows: PowerShell
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
+const { exec } = require("child_process");
+const { promisify } = require("util");
 
 const execAsync = promisify(exec);
 const platform = process.platform;
@@ -56,7 +56,7 @@ async function getNowPlaying() {
   return null;
 }
 
-export default {
+module.exports = {
   async setup(ctx) {
     ctx.log('Media pack loaded');
 
