@@ -29,6 +29,12 @@ declare global {
         onProgress: (cb: (data: { packId: string; pct: number }) => void) => () => void
         onPacksUpdated: (cb: (packs: any[]) => void) => () => void
       }
+      updater: {
+        check: () => Promise<void>
+        download: () => Promise<void>
+        install: () => void
+        onStatus: (cb: (data: any) => void) => () => void
+      }
     }
   }
 }

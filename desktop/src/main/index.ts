@@ -7,6 +7,7 @@ import { ActionExecutor } from './actions/ActionExecutor'
 import { StateManager } from './ws/StateManager'
 import { ProfileStore } from './ProfileStore'
 import { PackInstaller } from './PackInstaller'
+import { setupAutoUpdater } from './updater'
 import { loadConfig, saveConfig } from './config'
 import { log } from './logger'
 
@@ -35,6 +36,9 @@ app.whenReady().then(async () => {
   startWebSocketServer()
   createWindow()
   createTray()
+  if (app.isPackaged) {
+    setupAutoUpdater(() => mainWindow)
+  }
 })
 
 // ── Auto-add media pack buttons na výchozí profil ─────────────────────────

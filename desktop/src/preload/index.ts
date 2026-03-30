@@ -52,4 +52,15 @@ contextBridge.exposeInMainWorld('opendeck', {
       return () => ipcRenderer.removeAllListeners('packs:updated')
     },
   },
+
+  // Auto-updater
+  updater: {
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onStatus: (cb: (status: any) => void) => {
+      ipcRenderer.on('updater:status', (_e, data) => cb(data))
+      return () => ipcRenderer.removeAllListeners('updater:status')
+    },
+  },
 })

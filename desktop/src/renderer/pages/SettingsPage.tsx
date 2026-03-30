@@ -1,10 +1,23 @@
 import { useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 
+type UpdateStatus = 'idle' | 'checking' | 'available' | 'up-to-date' | 'downloading' | 'downloaded' | 'error'
+
 export function SettingsPage() {
   const { config, saveConfig, connectedClients } = useStore()
   const [port, setPort] = useState(String(config.port ?? 9001))
   const [startMinimized, setStartMinimized] = useState(config.startMinimized ?? false)
+  const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle')
+  const [updateVersion, setUpdateVersion] = useState('')
+
+  useEffect(() => {
+    if (!window.opendeck?.updater) return
+    const unsub = window.opendeck.updater.onStatus((data: any) => {
+      setUpdateStatus(data.status)
+      if (data.version) setUpdateVersion(data.version)
+    })
+    return unsub
+  }, [])
 
   useEffect(() => {
     setPort(String(config.port ?? 9001))
@@ -79,6 +92,37 @@ export function SettingsPage() {
 
       <button onClick={handleSave} style={s.btnPrimary}>Uložit nastavení</button>
 
+      {/* Aktualizace */}
+      <div style={s.sectionLabel}>Aktualizace</div>
+      <div style={s.card}>
+        <div style={s.row}>
+          <div style={{ flex: 1 }}>
+            <div style={s.label}>Verze aplikace</div>
+            <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+              {updateStatus === 'up-to-date' && '✅ Máš nejnovější verzi'}
+              {updateStatus === 'available' && `🆕 Dostupná verze ${updateVersion}`}
+              {updateStatus === 'downloading' && '⬇ Stahuji aktualizaci…'}
+              {updateStatus === 'downloaded' && `✅ Verze ${updateVersion} stažena — čeká na restart`}
+              {updateStatus === 'checking' && '🔍 Kontroluji…'}
+              {updateStatus === 'error' && '⚠ Nepodařilo se zkontrolovat'}
+              {updateStatus === 'idle' && 'OpenDeck v0.2.0'}
+            </div>
+          </div>
+          <button
+            onClick={() => window.opendeck?.updater?.check()}
+            disabled={updateStatus === 'checking'}
+            style={{ ...s.btnSecondary, opacity: updateStatus === 'checking' ? 0.5 : 1 }}
+          >
+            {updateStatus === 'checking' ? '🔍' : 'Zkontrolovat'}
+          </button>
+          {updateStatus === 'downloaded' && (
+            <button onClick={() => window.opendeck?.updater?.install()} style={s.btnPrimary}>
+              Restartovat
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* About */}
       <div style={{ marginTop: 32, fontSize: 11, color: '#444', lineHeight: 1.8 }}>
         <div>OpenDeck v0.1.0</div>
@@ -96,4 +140,5 @@ const s: Record<string, any> = {
   label: { flex: 1, fontSize: 14, color: '#ccc' },
   input: { width: 120, background: '#161616', border: '1px solid #2a2a2a', borderRadius: 8, padding: '6px 10px', color: '#e8e8e8', fontSize: 13, textAlign: 'right' as const, outline: 'none' },
   btnPrimary: { background: '#4f9eff', border: 'none', borderRadius: 10, padding: '11px 28px', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer' },
+  btnSecondary: { background: 'transparent', border: '1px solid #2a2a2a', borderRadius: 8, padding: '7px 14px', color: '#aaa', fontSize: 12, cursor: 'pointer' },
 }

@@ -3,6 +3,7 @@ import { Sidebar } from './components/Sidebar'
 import { ProfileEditor } from './pages/ProfileEditor'
 import { PackBrowser } from './pages/PackBrowser'
 import { SettingsPage } from './pages/SettingsPage'
+import { UpdateBanner } from './components/UpdateBanner'
 import { useStore } from './store/useStore'
 
 export type Page = 'editor' | 'packs' | 'settings'
@@ -23,6 +24,7 @@ export function App() {
         {page === 'packs' && <PackBrowser />}
         {page === 'settings' && <SettingsPage />}
       </main>
+      <UpdateBanner />
     </div>
   )
 }
