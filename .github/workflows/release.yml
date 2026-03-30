@@ -37,27 +37,34 @@ jobs:
         working-directory: desktop
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # electron-builder --publish onTagOrDraft generuje latest.yml a nahraje vše na GitHub Release
 
       - name: Upload artifact (Windows)
         if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
           name: desktop-win
-          path: desktop/dist/*.exe
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/latest.yml
 
       - name: Upload artifact (macOS)
         if: matrix.platform == 'mac'
         uses: actions/upload-artifact@v4
         with:
           name: desktop-mac
-          path: desktop/dist/*.dmg
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/latest-mac.yml
 
       - name: Upload artifact (Linux)
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
         with:
           name: desktop-linux
-          path: desktop/dist/*.AppImage
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/latest-linux.yml
 
   # ── Android (EAS) ─────────────────────────────────────────────────────────
   build-android:
