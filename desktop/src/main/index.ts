@@ -6,6 +6,7 @@ import { PluginManager } from './plugins/PluginManager'
 import { ActionExecutor } from './actions/ActionExecutor'
 import { StateManager } from './ws/StateManager'
 import { ProfileStore } from './ProfileStore'
+import { PackInstaller } from './PackInstaller'
 import { loadConfig, saveConfig } from './config'
 import { log } from './logger'
 
@@ -25,14 +26,41 @@ const profileStore = new ProfileStore(config.dataDir)
 const stateManager = new StateManager()
 const pluginManager = new PluginManager(config, stateManager)
 const actionExecutor = new ActionExecutor(pluginManager, stateManager)
+const packInstaller = new PackInstaller(config.userPacksDir)
 
 // ── App lifecycle ──────────────────────────────────────────────────────────
 app.whenReady().then(async () => {
   await pluginManager.loadAll()
+  autoAddMediaButtons()
   startWebSocketServer()
   createWindow()
   createTray()
 })
+
+// ── Auto-add media pack buttons na výchozí profil ─────────────────────────
+function autoAddMediaButtons() {
+  const profiles = profileStore.getAllProfiles()
+  const defaultProfile = profiles.find(p => p.id === 'default') ?? profiles[0]
+  if (!defaultProfile) return
+
+  // Zkontroluj jestli už media tlačítka jsou
+  const hasMedia = defaultProfile.buttons.some((b: any) => b.buttonId?.startsWith('media.'))
+  if (hasMedia) return
+
+  log('Auto-adding media pack buttons to default profile')
+
+  const mediaButtons = [
+    { id: 'media.prev-auto',       buttonId: 'media.prev',       size: '1x1', gridX: 0, gridY: 0 },
+    { id: 'media.play_pause-auto', buttonId: 'media.play_pause', size: '1x1', gridX: 1, gridY: 0 },
+    { id: 'media.next-auto',       buttonId: 'media.next',       size: '1x1', gridX: 2, gridY: 0 },
+    { id: 'media.volume_up-auto',  buttonId: 'system.volume_up', size: '1x1', gridX: 3, gridY: 0 },
+    { id: 'media.mute-auto',       buttonId: 'system.mute_toggle', size: '1x1', gridX: 4, gridY: 0 },
+  ]
+
+  profileStore.updateProfile(defaultProfile.id, {
+    buttons: [...defaultProfile.buttons, ...mediaButtons],
+  })
+}
 
 app.on('window-all-closed', () => {
   // Keep running in tray on all platforms
@@ -204,4 +232,35 @@ ipcMain.handle('connection:getClients', () => clients.size)
 // Push state changes to renderer too
 stateManager.subscribe((event) => {
   mainWindow?.webContents.send('state:update', event)
+})
+
+// ── Marketplace IPC ─────────────────────────────────────────────────────
+
+ipcMain.handle('marketplace:search', async (_, query: string) => {
+  return packInstaller.search(query)
+})
+
+ipcMain.handle('marketplace:install', async (event, pack) => {
+  return packInstaller.install(pack, (pct) => {
+    // Poslání progress do renderu
+    event.sender.send('marketplace:progress', { packId: pack.id, pct })
+  })
+})
+
+ipcMain.handle('marketplace:uninstall', async (_, packName: string) => {
+  const result = packInstaller.uninstall(packName)
+  if (result.ok) {
+    // Restart plugin loaderu pro nové packs
+    await pluginManager.loadAll()
+    mainWindow?.webContents.send('packs:updated', pluginManager.getPacksMeta())
+  }
+  return result
+})
+
+ipcMain.handle('marketplace:getInstalled', () => {
+  const { readdirSync, existsSync } = require('fs')
+  if (!existsSync(config.userPacksDir)) return []
+  return readdirSync(config.userPacksDir, { withFileTypes: true })
+    .filter((e: any) => e.isDirectory())
+    .map((e: any) => e.name)
 })

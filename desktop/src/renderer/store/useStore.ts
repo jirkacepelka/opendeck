@@ -21,6 +21,14 @@ declare global {
         save: (patch: any) => Promise<void>
       }
       connection: { getClients: () => Promise<number> }
+      marketplace: {
+        search: (query: string) => Promise<any[]>
+        install: (pack: any) => Promise<{ ok: boolean; error?: string }>
+        uninstall: (packName: string) => Promise<{ ok: boolean; error?: string }>
+        getInstalled: () => Promise<string[]>
+        onProgress: (cb: (data: { packId: string; pct: number }) => void) => () => void
+        onPacksUpdated: (cb: (packs: any[]) => void) => () => void
+      }
     }
   }
 }

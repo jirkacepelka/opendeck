@@ -36,4 +36,20 @@ contextBridge.exposeInMainWorld('opendeck', {
   connection: {
     getClients: () => ipcRenderer.invoke('connection:getClients'),
   },
+
+  // Marketplace
+  marketplace: {
+    search: (query: string) => ipcRenderer.invoke('marketplace:search', query),
+    install: (pack: any) => ipcRenderer.invoke('marketplace:install', pack),
+    uninstall: (packName: string) => ipcRenderer.invoke('marketplace:uninstall', packName),
+    getInstalled: () => ipcRenderer.invoke('marketplace:getInstalled'),
+    onProgress: (cb: (data: { packId: string; pct: number }) => void) => {
+      ipcRenderer.on('marketplace:progress', (_e, data) => cb(data))
+      return () => ipcRenderer.removeAllListeners('marketplace:progress')
+    },
+    onPacksUpdated: (cb: (packs: any[]) => void) => {
+      ipcRenderer.on('packs:updated', (_e, packs) => cb(packs))
+      return () => ipcRenderer.removeAllListeners('packs:updated')
+    },
+  },
 })
