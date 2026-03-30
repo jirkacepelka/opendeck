@@ -250,6 +250,9 @@ ipcMain.handle('config:save', (_, patch) => {
 // Connection info
 ipcMain.handle('connection:getClients', () => clients.size)
 
+// App version
+ipcMain.handle('app:version', () => app.getVersion())
+
 // Push state changes to renderer too
 stateManager.subscribe((event) => {
   mainWindow?.webContents.send('state:update', event)

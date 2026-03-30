@@ -54,6 +54,11 @@ contextBridge.exposeInMainWorld('opendeck', {
     },
   },
 
+  // App info
+  app: {
+    version: () => ipcRenderer.invoke('app:version'),
+  },
+
   // Debug
   debug: {
     getPaths: () => ipcRenderer.invoke('debug:paths'),

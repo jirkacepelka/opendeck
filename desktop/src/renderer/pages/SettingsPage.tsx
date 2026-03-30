@@ -10,6 +10,11 @@ export function SettingsPage() {
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle')
   const [updateVersion, setUpdateVersion] = useState('')
   const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [appVersion, setAppVersion] = useState('...')
+
+  useEffect(() => {
+    ;(window.opendeck as any).app?.version().then((v: string) => setAppVersion(v))
+  }, [])
 
   useEffect(() => {
     if (!window.opendeck?.updater) return
@@ -106,7 +111,7 @@ export function SettingsPage() {
               {updateStatus === 'downloaded' && `✅ Verze ${updateVersion} stažena — čeká na restart`}
               {updateStatus === 'checking' && '🔍 Kontroluji…'}
               {updateStatus === 'error' && '⚠ Nepodařilo se zkontrolovat'}
-              {updateStatus === 'idle' && 'OpenDeck v0.2.0'}
+              {updateStatus === 'idle' && `OpenDeck v${appVersion}`}
             </div>
           </div>
           <button
@@ -143,7 +148,7 @@ export function SettingsPage() {
 
       {/* About */}
       <div style={{ marginTop: 16, fontSize: 11, color: '#444', lineHeight: 1.8 }}>
-        <div>OpenDeck v0.2.4</div>
+        <div>OpenDeck v{appVersion}</div>
         <div>Licence: GPL-3.0</div>
         <div>github.com/jirkacepelka/opendeck</div>
       </div>
