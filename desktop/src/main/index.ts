@@ -220,6 +220,23 @@ ipcMain.handle('profiles:setActive', (_, id) => {
 // Packs
 ipcMain.handle('packs:getAll', () => pluginManager.getPacksMeta())
 
+// Debug — cesty a staž načtených packů
+ipcMain.handle('debug:paths', () => ({
+  builtinPacksDir: config.builtinPacksDir,
+  userPacksDir: config.userPacksDir,
+  resourcesPath: process.resourcesPath,
+  isPackaged: app.isPackaged,
+  packsLoaded: pluginManager.getPacksMeta().map(p => p.id),
+  builtinExists: require('fs').existsSync(config.builtinPacksDir),
+  userExists: require('fs').existsSync(config.userPacksDir),
+  builtinContents: require('fs').existsSync(config.builtinPacksDir)
+    ? require('fs').readdirSync(config.builtinPacksDir)
+    : [],
+  userContents: require('fs').existsSync(config.userPacksDir)
+    ? require('fs').readdirSync(config.userPacksDir)
+    : [],
+}))
+
 // Button states (live)
 ipcMain.handle('states:getAll', () => stateManager.getAllStates())
 

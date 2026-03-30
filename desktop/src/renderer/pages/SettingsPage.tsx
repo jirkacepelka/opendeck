@@ -9,6 +9,7 @@ export function SettingsPage() {
   const [startMinimized, setStartMinimized] = useState(config.startMinimized ?? false)
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('idle')
   const [updateVersion, setUpdateVersion] = useState('')
+  const [debugInfo, setDebugInfo] = useState<any>(null)
 
   useEffect(() => {
     if (!window.opendeck?.updater) return
@@ -123,11 +124,28 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* Debug */}
+      <div style={s.sectionLabel}>Debug</div>
+      <div style={s.card}>
+        <div style={s.row}>
+          <label style={s.label}>Info o cestách a packs</label>
+          <button
+            onClick={async () => setDebugInfo(await (window.opendeck as any).debug.getPaths())}
+            style={s.btnSecondary}
+          >Zobrazit</button>
+        </div>
+        {debugInfo && (
+          <pre style={{ fontSize: 10, color: '#888', padding: '8px 16px', overflowX: 'auto' as const, whiteSpace: 'pre-wrap' as const, wordBreak: 'break-all' as const, borderTop: '1px solid #1e1e1e' }}>
+            {JSON.stringify(debugInfo, null, 2)}
+          </pre>
+        )}
+      </div>
+
       {/* About */}
-      <div style={{ marginTop: 32, fontSize: 11, color: '#444', lineHeight: 1.8 }}>
-        <div>OpenDeck v0.1.0</div>
+      <div style={{ marginTop: 16, fontSize: 11, color: '#444', lineHeight: 1.8 }}>
+        <div>OpenDeck v0.2.4</div>
         <div>Licence: GPL-3.0</div>
-        <div>github.com/opendeck/opendeck</div>
+        <div>github.com/jirkacepelka/opendeck</div>
       </div>
     </div>
   )
