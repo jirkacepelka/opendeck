@@ -86,14 +86,14 @@ function createTray() {
     tray!.setContextMenu(Menu.buildFromTemplate([
       { label: `OpenDeck — ${connected} klient${connected === 1 ? '' : 'ů'}`, enabled: false },
       { type: 'separator' },
-      { label: 'Otevřít', click: () => { mainWindow?.show() || createWindow() } },
+      { label: 'Otevřít', click: () => { if (mainWindow) mainWindow.show(); else createWindow() } },
       { type: 'separator' },
       { label: 'Ukončit', click: () => { app.exit(0) } },
     ]))
   }
 
   updateMenu()
-  tray.on('double-click', () => { mainWindow?.show() || createWindow() })
+  tray.on('double-click', () => { if (mainWindow) mainWindow.show(); else createWindow() })
 
   // Update tray menu when clients connect/disconnect
   stateManager.onClientChange = updateMenu
