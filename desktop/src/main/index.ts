@@ -240,8 +240,12 @@ stateManager.subscribe((event) => {
 
 // ── Marketplace IPC ─────────────────────────────────────────────────────
 
-ipcMain.handle('marketplace:search', async (_, query: string) => {
-  return packInstaller.search(query)
+ipcMain.handle('marketplace:getRegistry', async () => {
+  return packInstaller.getRegistry()
+})
+
+ipcMain.handle('marketplace:fetchUrl', async (_, url: string) => {
+  return packInstaller.fetchFromUrl(url)
 })
 
 ipcMain.handle('marketplace:install', async (event, pack) => {

@@ -1,22 +1,24 @@
 /**
  * OpenDeck — PackInstaller
  *
- * Vyhledává GitHub repozitáře s tagem "opendeck-pack",
- * načítá pack.json přímo z GitHubu (přesná tlačítka, ikony, verze)
- * a instaluje/aktualizuje packs stažením ZIP.
+ * Načítá ověřené packs z registry.json v hlavním repozitáři.
+ * Podporuje také ruční zadání libovolného GitHub URL.
+ * Instaluje packs stažením ZIP z GitHubu.
  */
 
-import { createWriteStream, existsSync, mkdirSync, rmSync, readdirSync, readFileSync } from 'fs'
+import { existsSync, mkdirSync, rmSync, readdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { log } from './logger'
 
 const fetchFn: typeof fetch = globalThis.fetch
 
+const REGISTRY_URL = 'https://raw.githubusercontent.com/jirkacepelka/opendeck/main/registry.json'
+
 export interface RemoteButtonDef {
   id: string
   label: string
-  icon?: string           // lucide icon name
-  logoUrl?: string        // URL k obrázku/SVG logu (z GitHubu raw)
+  icon?: string
+  logoUrl?: string
   color?: string
   defaultSize?: string
   hasHold?: boolean
@@ -24,7 +26,7 @@ export interface RemoteButtonDef {
 }
 
 export interface MarketplacePack {
-  id: string              // GitHub full name: "author/repo"
+  id: string                    // GitHub full name: "author/repo"
   name: string
   description: string
   author: string
@@ -32,10 +34,11 @@ export interface MarketplacePack {
   url: string
   zipUrl: string
   defaultBranch: string
-  rawBase: string         // base URL pro raw soubory: https://raw.githubusercontent.com/...
-  version: string         // z pack.json na GitHubu
+  rawBase: string
+  version: string
   installedVersion: string | null
   updateAvailable: boolean
+  trusted: boolean
   buttons: RemoteButtonDef[]
 }
 
@@ -46,63 +49,93 @@ export class PackInstaller {
     }
   }
 
-  // ── GitHub search + načtení pack.json ─────────────────────────────────
+  // ── Registry — ověřené packs ──────────────────────────────────────────
 
-  async search(query: string = ''): Promise<MarketplacePack[]> {
-    const q = encodeURIComponent(`topic:opendeck-pack ${query}`.trim())
-    const url = `https://api.github.com/search/repositories?q=${q}&sort=stars&per_page=30`
+  async getRegistry(): Promise<MarketplacePack[]> {
+    let repos: { repo: string; trusted: boolean }[] = []
 
-    let repos: any[] = []
     try {
-      const res = await fetchFn(url, {
-        headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'OpenDeck-App' },
-      })
-      if (!res.ok) { log(`GitHub search failed: ${res.status}`); return [] }
-      const data: any = await res.json()
-      repos = data.items ?? []
+      const res = await fetchFn(REGISTRY_URL, { headers: { 'User-Agent': 'OpenDeck-App' } })
+      if (res.ok) {
+        const data = await res.json() as any
+        repos = data.packs ?? []
+      }
     } catch (e: any) {
-      log(`GitHub search error: ${e.message}`)
-      return []
+      log(`Registry fetch error: ${e.message}`)
     }
 
-    // Načti pack.json paralelně pro každý repozitář
-    const results = await Promise.all(repos.map(repo => this._enrichRepo(repo)))
+    const results = await Promise.all(
+      repos.map(entry => this._fetchPackFromRepo(entry.repo, entry.trusted))
+    )
     return results.filter((p): p is MarketplacePack => p !== null)
   }
 
-  /** Načte pack.json z GitHubu a obohatí metadata repozitáře */
-  private async _enrichRepo(repo: any): Promise<MarketplacePack | null> {
-    const rawBase = `https://raw.githubusercontent.com/${repo.full_name}/${repo.default_branch}`
-    const packJsonUrl = `${rawBase}/pack.json`
+  // ── Přidání vlastního GitHub URL ──────────────────────────────────────
 
+  async fetchFromUrl(githubUrl: string): Promise<MarketplacePack | null> {
+    // Podporované formáty:
+    //   https://github.com/author/repo
+    //   author/repo
+    const match = githubUrl
+      .replace('https://github.com/', '')
+      .replace('http://github.com/', '')
+      .trim()
+      .match(/^([\w.-]+)\/([\w.-]+)/)
+
+    if (!match) return null
+    const repo = `${match[1]}/${match[2]}`
+    return this._fetchPackFromRepo(repo, false)
+  }
+
+  // ── Načtení pack.json z GitHub repozitáře ─────────────────────────────
+
+  private async _fetchPackFromRepo(
+    fullName: string,
+    trusted: boolean
+  ): Promise<MarketplacePack | null> {
+    // Nejdřív GitHub API pro metadata repozitáře
+    let repoMeta: any = {}
+    try {
+      const res = await fetchFn(
+        `https://api.github.com/repos/${fullName}`,
+        { headers: { 'Accept': 'application/vnd.github+json', 'User-Agent': 'OpenDeck-App' } }
+      )
+      if (res.ok) repoMeta = await res.json()
+    } catch { /* ignoruj */ }
+
+    const defaultBranch = repoMeta.default_branch ?? 'main'
+    const rawBase = `https://raw.githubusercontent.com/${fullName}/${defaultBranch}`
+
+    // Načti pack.json přímo z repozitáře
     let packJson: any = {}
     try {
-      const res = await fetchFn(packJsonUrl, { headers: { 'User-Agent': 'OpenDeck-App' } })
+      const res = await fetchFn(`${rawBase}/pack.json`, { headers: { 'User-Agent': 'OpenDeck-App' } })
       if (res.ok) packJson = await res.json()
-    } catch { /* pack.json neexistuje nebo je nečitelný */ }
+    } catch { /* pack.json neexistuje */ }
 
-    const installedVersion = this._getInstalledVersion(repo.name)
+    const packName = packJson.id ?? fullName.split('/')[1]
+    const installedVersion = this._getInstalledVersion(packName)
     const remoteVersion = packJson.version ?? '0.0.0'
 
     return {
-      id: repo.full_name,
-      name: packJson.name ?? repo.name,
-      description: packJson.description ?? repo.description ?? '',
-      author: repo.owner?.login ?? '',
-      stars: repo.stargazers_count ?? 0,
-      url: repo.html_url,
-      zipUrl: `${repo.html_url}/archive/refs/heads/${repo.default_branch}.zip`,
-      defaultBranch: repo.default_branch,
+      id: fullName,
+      name: packJson.name ?? repoMeta.name ?? packName,
+      description: packJson.description ?? repoMeta.description ?? '',
+      author: fullName.split('/')[0],
+      stars: repoMeta.stargazers_count ?? 0,
+      url: `https://github.com/${fullName}`,
+      zipUrl: `https://github.com/${fullName}/archive/refs/heads/${defaultBranch}.zip`,
+      defaultBranch,
       rawBase,
       version: remoteVersion,
       installedVersion,
       updateAvailable: installedVersion !== null && installedVersion !== remoteVersion,
+      trusted,
       buttons: (packJson.buttons ?? []).map((btn: any) => ({
         ...btn,
-        // Pokud logoUrl je relativní cesta, převeď na absolutní raw URL
-        logoUrl: btn.logoUrl
-          ? (btn.logoUrl.startsWith('http') ? btn.logoUrl : `${rawBase}/${btn.logoUrl}`)
-          : undefined,
+        logoUrl: btn.logoUrl?.startsWith('http')
+          ? btn.logoUrl
+          : btn.logoUrl ? `${rawBase}/${btn.logoUrl}` : undefined,
       })),
     }
   }
@@ -113,10 +146,10 @@ export class PackInstaller {
     pack: MarketplacePack,
     onProgress?: (pct: number) => void
   ): Promise<{ ok: boolean; error?: string }> {
-    log(`Installing/updating pack: ${pack.id}`)
-
+    log(`Installing: ${pack.id} v${pack.version}`)
     try {
       onProgress?.(5)
+
       const res = await fetchFn(pack.zipUrl, { headers: { 'User-Agent': 'OpenDeck-App' } })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
@@ -137,36 +170,31 @@ export class PackInstaller {
 
       const zipBuffer = Buffer.concat(chunks)
       const tmpZip = join(this.userPacksDir, `__tmp_${pack.name}.zip`)
-      require('fs').writeFileSync(tmpZip, zipBuffer)
-
-      onProgress?.(85)
+      writeFileSync(tmpZip, zipBuffer)
 
       const { exec } = require('child_process')
       const { promisify } = require('util')
       const execAsync = promisify(exec)
-      const platform = process.platform
 
-      const destDir = join(this.userPacksDir, pack.name)
+      const packName = pack.buttons[0] ? pack.id.split('/')[1] : pack.name.toLowerCase()
+      const destDir = join(this.userPacksDir, packName)
       if (existsSync(destDir)) rmSync(destDir, { recursive: true })
       mkdirSync(destDir, { recursive: true })
 
-      // Rozbal ZIP
-      const tmpExtract = join(this.userPacksDir, `__extract_${pack.name}`)
+      const tmpExtract = join(this.userPacksDir, `__extract_${packName}`)
       if (existsSync(tmpExtract)) rmSync(tmpExtract, { recursive: true })
       mkdirSync(tmpExtract)
 
-      if (platform === 'win32') {
+      if (process.platform === 'win32') {
         await execAsync(`powershell -NoProfile -Command "Expand-Archive -Path '${tmpZip}' -DestinationPath '${tmpExtract}' -Force"`)
       } else {
         await execAsync(`unzip -o "${tmpZip}" -d "${tmpExtract}"`)
       }
 
-      // GitHub ZIP vytváří podsložku repo-branch/
-      // Přesuň obsah té složky do destDir
       const entries = readdirSync(tmpExtract)
       const subDir = entries.length === 1 ? join(tmpExtract, entries[0]) : tmpExtract
 
-      if (platform === 'win32') {
+      if (process.platform === 'win32') {
         await execAsync(`xcopy "${subDir}\\*" "${destDir}\\" /E /I /Y`)
       } else {
         await execAsync(`cp -r "${subDir}/." "${destDir}/"`)
@@ -176,7 +204,7 @@ export class PackInstaller {
       rmSync(tmpExtract, { recursive: true, force: true })
 
       onProgress?.(100)
-      log(`Pack installed: ${pack.name} v${pack.version}`)
+      log(`Installed: ${packName} v${pack.version}`)
       return { ok: true }
     } catch (e: any) {
       log(`Install error: ${e.message}`)
@@ -184,7 +212,7 @@ export class PackInstaller {
     }
   }
 
-  // ── Uninstall ──────────────────────────────────────────────────────────
+  // ── Uninstall ─────────────────────────────────────────────────────────
 
   uninstall(packName: string): { ok: boolean; error?: string } {
     const dir = join(this.userPacksDir, packName)
@@ -197,22 +225,20 @@ export class PackInstaller {
     }
   }
 
-  // ── Helpers ────────────────────────────────────────────────────────────
+  // ── Helpers ───────────────────────────────────────────────────────────
 
   private _getInstalledVersion(packName: string): string | null {
     const manifestPath = join(this.userPacksDir, packName, 'pack.json')
     if (!existsSync(manifestPath)) return null
     try {
-      const meta = JSON.parse(readFileSync(manifestPath, 'utf8'))
-      return meta.version ?? '0.0.0'
+      return JSON.parse(readFileSync(manifestPath, 'utf8')).version ?? '0.0.0'
     } catch { return null }
   }
 
   getInstalledNames(): string[] {
     try {
       return readdirSync(this.userPacksDir, { withFileTypes: true })
-        .filter(e => e.isDirectory())
-        .map(e => e.name)
+        .filter(e => e.isDirectory()).map(e => e.name)
     } catch { return [] }
   }
 }

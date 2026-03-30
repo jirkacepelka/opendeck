@@ -22,7 +22,8 @@ declare global {
       }
       connection: { getClients: () => Promise<number> }
       marketplace: {
-        search: (query: string) => Promise<any[]>
+        getRegistry: () => Promise<any[]>
+        fetchUrl: (url: string) => Promise<any | null>
         install: (pack: any) => Promise<{ ok: boolean; error?: string }>
         uninstall: (packName: string) => Promise<{ ok: boolean; error?: string }>
         getInstalled: () => Promise<string[]>

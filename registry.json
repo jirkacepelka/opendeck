@@ -1,0 +1,22 @@
+{
+  "_comment": "Ověřené OpenDeck packy. PR welcome — přidej svůj pack sem.",
+  "_registry_version": "1",
+  "packs": [
+    {
+      "repo": "jirkacepelka/opendeck-pack-discord",
+      "trusted": true
+    },
+    {
+      "repo": "jirkacepelka/opendeck-pack-obs",
+      "trusted": true
+    },
+    {
+      "repo": "jirkacepelka/opendeck-pack-media",
+      "trusted": true
+    },
+    {
+      "repo": "jirkacepelka/opendeck-pack-system",
+      "trusted": true
+    }
+  ]
+}

@@ -39,7 +39,8 @@ contextBridge.exposeInMainWorld('opendeck', {
 
   // Marketplace
   marketplace: {
-    search: (query: string) => ipcRenderer.invoke('marketplace:search', query),
+    getRegistry: () => ipcRenderer.invoke('marketplace:getRegistry'),
+    fetchUrl: (url: string) => ipcRenderer.invoke('marketplace:fetchUrl', url),
     install: (pack: any) => ipcRenderer.invoke('marketplace:install', pack),
     uninstall: (packName: string) => ipcRenderer.invoke('marketplace:uninstall', packName),
     getInstalled: () => ipcRenderer.invoke('marketplace:getInstalled'),
