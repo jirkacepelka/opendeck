@@ -9,17 +9,15 @@ jobs:
   # ── Desktop (Electron) ────────────────────────────────────────────────────
   build-desktop:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
-            artifact: OpenDeck-Setup-*.exe
           - os: macos-latest
             platform: mac
-            artifact: OpenDeck-*.dmg
           - os: ubuntu-latest
             platform: linux
-            artifact: OpenDeck-*.AppImage
 
     runs-on: ${{ matrix.os }}
 
@@ -29,11 +27,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: desktop/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: desktop
 
       - name: Build Electron app
@@ -42,15 +38,31 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload artifact
+      - name: Upload artifact (Windows)
+        if: matrix.platform == 'win'
         uses: actions/upload-artifact@v4
         with:
-          name: desktop-${{ matrix.platform }}
-          path: desktop/dist/${{ matrix.artifact }}
+          name: desktop-win
+          path: desktop/dist/*.exe
+
+      - name: Upload artifact (macOS)
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-mac
+          path: desktop/dist/*.dmg
+
+      - name: Upload artifact (Linux)
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-linux
+          path: desktop/dist/*.AppImage
 
   # ── Android (EAS) ─────────────────────────────────────────────────────────
   build-android:
     runs-on: ubuntu-latest
+    continue-on-error: true  # Nevyžaduje EXPO_TOKEN pro desktop release
 
     steps:
       - uses: actions/checkout@v4
@@ -58,14 +70,12 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: android-app/package-lock.json
 
       - name: Install EAS CLI
         run: npm install -g eas-cli
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
         working-directory: android-app
 
       - name: Build APK
@@ -74,11 +84,11 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Download APK from EAS
+      - name: Download built APK
         run: |
-          eas build:list --platform android --limit 1 --json | \
-          python3 -c "import sys,json; builds=json.load(sys.stdin); print(builds[0]['artifacts']['buildUrl'])" > apk_url.txt
-          curl -L $(cat apk_url.txt) -o OpenDeck.apk
+          URL=$(eas build:list --platform android --limit 1 --json --non-interactive \
+            | python3 -c "import sys,json; print(json.load(sys.stdin)[0]['artifacts']['buildUrl'])")
+          curl -L "$URL" -o OpenDeck.apk
         working-directory: android-app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
@@ -91,7 +101,7 @@ jobs:
 
   # ── GitHub Release ────────────────────────────────────────────────────────
   create-release:
-    needs: [build-desktop, build-android]
+    needs: [build-desktop]
     runs-on: ubuntu-latest
 
     steps:
@@ -101,6 +111,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          merge-multiple: true
+
+      - name: List artifacts
+        run: find artifacts -type f | sort
 
       - name: Get version from tag
         id: version
@@ -123,12 +137,7 @@ jobs:
             **Linux:** Stáhni `.AppImage`, přidej execute permission (`chmod +x`) a spusť.
             **Android:** Stáhni `.apk` a nainstaluj (v Nastavení povol instalaci z neznámých zdrojů).
 
-            ### Co je nového
-            _Viz CHANGELOG.md_
-          files: |
-            artifacts/desktop-win/*.exe
-            artifacts/desktop-mac/*.dmg
-            artifacts/desktop-linux/*.AppImage
-            artifacts/android-apk/OpenDeck.apk
+            > Android APK vyžaduje nastavený `EXPO_TOKEN` secret — pokud chybí, přidej ho v Settings → Secrets.
+          files: artifacts/**/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
